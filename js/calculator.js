@@ -5,8 +5,29 @@ const display = document.querySelector('.calculator__display');
 
 const calculate = (n1, operator, n2) => {
     let result = ''
+    n1 = parseFloat(n1)
+    n2 = parseFloat(n2)
 
-    console.log('Realizar el cálculo')
+    switch (operator) {
+        case 'add':
+            result = n1 + n2
+            break;
+        case 'subtract':
+            result = n1 - n2
+            break;
+        case 'multiply':
+            result = n1 * n2
+            break;
+        case 'divide':
+            result = n1 / n2
+            break;
+
+        default:
+            console.log(operator)
+            break;
+    }
+
+    return result
 
 }
 
@@ -24,40 +45,90 @@ keys.addEventListener('click', e => {
             .from(key.parentNode.children)
             .forEach(key => key.classList.remove('is-depressed'));
 
+        let firstValue = calculator.dataset.firstValue;
+        let operator = calculator.dataset.operator;
+        let secondValue = displayedNum;
+
+        console.log('Default:', action)
+        if (action !== 'clear') {
+            const clearButton = calculator.querySelector('[data-action=clear]');
+            clearButton.textContent = 'CE'
+        }
+
         switch (action) {
             case undefined:
                 // Es un número
-                if (displayedNum === '0' || previousKeyType === 'operator') {
+                if (displayedNum === '0' ||
+                    previousKeyType === 'operator' ||
+                    previousKeyType === 'calculate'
+                ) {
                     display.textContent = keyContent;
                 } else {
                     display.textContent = displayedNum + keyContent;
                 }
+                calculator.dataset.previousKeyType = 'number';
                 break;
             case 'add':
             case 'subtract':
             case 'multiply':
             case 'divide':
                 // Es una operación
+                if (firstValue &&
+                    operator &&
+                    previousKeyType !== 'operator' &&
+                    previousKeyType !== 'calculate'
+                ) {
+                    const calcValue = calculate(firstValue, operator, secondValue);
+                    display.textContent = calcValue;
+                    // Actualizo el valor calculado como primer valor
+                    calculator.dataset.firstValue = calcValue;
+                } else {
+                    // Si no es un calculo, el valor que esta en la pantalla es el primer valor
+                    calculator.dataset.firstValue = displayedNum
+                }
+
                 key.classList.add('is-depressed')
                 //Agrego un atributo personalizado para saber que operacion se esta por efectuar
                 calculator.dataset.previousKeyType = 'operator';
-                calculator.dataset.firstValue = displayedNum;
                 calculator.dataset.operator = action;
 
                 break;
             case 'decimal':
                 // Punto decimal
-                display.textContent = displayedNum + '.';
+                // Si ya hay un punto decimal no hacer nada
+                if (!displayedNum.includes('.')) {
+                    display.textContent = displayedNum + '.';
+                } else if (
+                    previousKeyType === 'operator' ||
+                    previousKeyType === 'calculate'
+                ) {
+                    display.textContent = '0.'
+                }
+                calculator.dataset.previousKeyType = 'decimal';
                 break;
             case 'clear':
-                console.log('Es la tecla borrado');
+                if (key.textContent === 'AC') {
+                    calculator.dataset.firstValue = '';
+                    calculator.dataset.modValue = '';
+                    calculator.dataset.operator = '';
+                    calculator.dataset.previousKeyType = '';
+                } else {
+                    key.textContent = 'AC';
+                }
+                display.textContent = '0';
+                calculator.dataset.previousKeyType = 'clear';
                 break;
             case 'calculate':
-                const firstValue = calculator.dataset.firstValue;
-                const operator = calculator.dataset.operator;
-                const secondValue = displayedNum;
-                display.textContent = calculate(firstValue, operator, secondValue)
-
+                if (firstValue) {
+                    if (previousKeyType === 'calculate') {
+                        firstValue = displayedNum
+                        secondValue = calculator.dataset.modValue
+                    }
+                    display.textContent = calculate(firstValue, operator, secondValue)
+                }
+                // Guardo el valor del segundo valor
+                calculator.dataset.modValue = secondValue;
+                calculator.dataset.previousKeyType = 'calculate';
                 break;
         }
     }
